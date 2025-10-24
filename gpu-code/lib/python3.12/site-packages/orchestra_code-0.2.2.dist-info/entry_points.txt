@@ -1,0 +1,8 @@
+[console_scripts]
+maestro = orchestra.runners.maestro:main
+orchestra = orchestra.runners.launch:main
+orchestra-hook = orchestra.runners.hook_monitor:main
+orchestra-mcp = orchestra.backend.mcp_server:main
+orchestra-monitor-server = orchestra.backend.monitor:main
+orchestra-setup = orchestra.runners.setup:main
+orchestra-ui = orchestra.runners.maestro:main
