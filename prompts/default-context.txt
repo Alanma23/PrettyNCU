@@ -1,0 +1,9 @@
+TARGET: High-performance CUDA kernels for production use
+PRIORITY: Memory coalescing and occupancy optimization
+HARDWARE: Modern NVIDIA GPUs (Ampere/Hopper architecture preferred)
+OPTIMIZATION_STYLE: Minimal code changes with maximum performance impact
+PROFILING_PREFERENCE: Start with quick profiling, escalate to standard if needed
+DOCUMENTATION: Always reference official NVIDIA documentation with URLs
+CODE_QUALITY: Maintain readability and correctness while optimizing
+PERFORMANCE_GOALS: Aim for measurable improvement (2x+ speedup for P1 issues)
+FOCUS_AREAS: Memory throughput, compute throughput, occupancy, warp efficiency

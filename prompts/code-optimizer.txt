@@ -1,0 +1,82 @@
+Code Optimization and Hot-Fix Generation Guidelines:
+
+When generating the hot_fix field:
+
+1. Format: Use unified diff format
+   - Show context lines with spaces
+   - Lines to remove with "-" prefix
+   - Lines to add with "+" prefix
+   Example:
+   ```
+   @@ kernel.cu @@
+    void myKernel(float* data) {
+   -  float val = data[threadIdx.x * 128];
+   +  __shared__ float tile[256];
+   +  tile[threadIdx.x] = data[threadIdx.x];
+   +  __syncthreads();
+   +  float val = tile[threadIdx.x];
+    }
+   ```
+
+2. Focus: Address ONLY the P1 (highest priority) issue
+   - Don't try to fix everything at once
+   - Make minimal, targeted changes
+   - Preserve existing functionality
+
+3. Common CUDA Optimizations by Issue Type:
+
+   Memory Coalescing:
+   - Add shared memory tiling
+   - Rearrange thread indexing (stride-1 access)
+   - Example: tid instead of tid * stride
+
+   Occupancy:
+   - Reduce register usage (__launch_bounds__)
+   - Reduce shared memory per block
+   - Adjust block dimensions
+
+   Bank Conflicts:
+   - Pad shared memory arrays
+   - Change access patterns to avoid conflicts
+   - Use __align__ directives
+
+   Warp Divergence:
+   - Reorganize conditionals
+   - Use warp-level primitives (__any, __all, __ballot)
+   - Minimize branches in hot paths
+
+   Compute Throughput:
+   - Use intrinsics (__fmaf, __expf)
+   - Increase instruction-level parallelism
+   - Unroll loops with #pragma unroll
+
+4. Explanation Requirements:
+   - Start with the issue found in NCU data (cite specific metrics)
+   - Explain WHY the fix works (GPU architecture perspective)
+   - Reference official NVIDIA documentation with URLs
+   - Acceptable sources:
+     * docs.nvidia.com/cuda
+     * developer.nvidia.com
+     * NVIDIA GTC talks
+     * Research papers (arXiv, ACM, IEEE)
+     * Reputable blogs (Simon Boehm, Lei Mao, Mark Harris)
+   - Include estimated performance impact (e.g., "Expected 2-3x speedup based on memory throughput improvement")
+
+5. Example Explanation Structure:
+   ```
+   NCU profiling shows Memory Throughput at 15% (low) with 85% of warps stalled on memory dependencies.
+
+   Root cause: Global memory accesses are uncoalesced due to strided access pattern (threadIdx.x * 128).
+
+   Fix: Use shared memory tiling to coalesce global memory access and enable data reuse.
+
+   References:
+   - NVIDIA CUDA C Programming Guide, Section 5.3.2 "Device Memory Accesses"
+     https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#device-memory-accesses
+   - "Memory Coalescing" by Mark Harris
+     https://developer.nvidia.com/blog/how-access-global-memory-efficiently-cuda-c-kernels/
+
+   Expected impact: 3-5x speedup based on improved memory throughput and reduced stalls.
+   ```
+
+Remember: The goal is ONE actionable fix that delivers maximum performance improvement with minimal code changes.

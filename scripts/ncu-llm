@@ -1,0 +1,369 @@
+#!/bin/bash
+#
+# ncu-llm - LLM-Friendly NCU Wrapper Suite
+# Main entry point for all LLM-optimized profiling commands
+#
+# Usage: ncu-llm <command> [options] <program> [args...]
+#
+# Commands:
+#   quick       - Ultra-minimal profiling (essential metrics only)
+#   standard    - Balanced profiling (LLM-friendly, ~30K tokens)
+#   bottleneck  - Just tell me: memory or compute bound?
+#   memory      - Memory subsystem analysis only
+#   compute     - Compute subsystem analysis only
+#   compare     - Compare multiple kernels side-by-side
+#   insights    - Extract only actionable recommendations
+#   summary     - One-page executive summary
+#   export      - Export existing report to LLM-friendly format
+#   help        - Show detailed help
+#
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export NCU_LLM_OUTPUT_DIR="${NCU_LLM_OUTPUT_DIR:-./ncu-llm-output}"
+
+# Source the library functions
+if [ -f "$SCRIPT_DIR/ncu-llm-lib.sh" ]; then
+    source "$SCRIPT_DIR/ncu-llm-lib.sh"
+else
+    echo "Error: ncu-llm-lib.sh not found in $SCRIPT_DIR"
+    exit 1
+fi
+
+# Main command dispatcher
+main() {
+    if [ $# -lt 1 ]; then
+        show_usage
+        exit 1
+    fi
+
+    local command="$1"
+    shift
+
+    case "$command" in
+        quick)
+            ncu_llm_quick "$@"
+            ;;
+        standard)
+            ncu_llm_standard "$@"
+            ;;
+        bottleneck)
+            ncu_llm_bottleneck "$@"
+            ;;
+        memory)
+            ncu_llm_memory "$@"
+            ;;
+        compute)
+            ncu_llm_compute "$@"
+            ;;
+        compare)
+            ncu_llm_compare "$@"
+            ;;
+        insights)
+            ncu_llm_insights "$@"
+            ;;
+        summary)
+            ncu_llm_summary "$@"
+            ;;
+        export)
+            ncu_llm_export "$@"
+            ;;
+        help|--help|-h)
+            show_help
+            ;;
+        *)
+            echo "Error: Unknown command '$command'"
+            echo ""
+            show_usage
+            exit 1
+            ;;
+    esac
+}
+
+show_usage() {
+    cat << 'EOF'
+ncu-llm - LLM-Friendly NCU Profiling Suite
+
+Usage: ncu-llm <command> [options] <program> [args...]
+
+Commands:
+  quick       Ultra-minimal profiling (~5K tokens)
+  standard    Balanced profiling (~30K tokens)
+  bottleneck  Memory vs compute bound check
+  memory      Memory subsystem analysis
+  compute     Compute subsystem analysis
+  compare     Compare multiple kernels
+  insights    Extract actionable recommendations only
+  summary     One-page executive summary
+  export      Convert existing .ncu-rep to LLM format
+  help        Show detailed help
+
+Examples:
+  ncu-llm quick ./myapp
+  ncu-llm standard ./myapp 512
+  ncu-llm bottleneck ./myapp
+  ncu-llm insights report.ncu-rep
+  ncu-llm compare kernel1 kernel2 kernel3 ./myapp
+
+Output: All results saved to ./ncu-llm-output/ (configurable)
+EOF
+}
+
+show_help() {
+    cat << 'EOF'
+═══════════════════════════════════════════════════════════════════════════
+                    NCU-LLM: LLM-Friendly Profiling Suite
+═══════════════════════════════════════════════════════════════════════════
+
+PHILOSOPHY:
+  • Minimal, focused data output
+  • Everything written to files (grep-able, searchable)
+  • LLM token budget aware (<50K tokens per file)
+  • Actionable insights over raw metrics
+  • Clear, parseable text format
+
+───────────────────────────────────────────────────────────────────────────
+
+COMMANDS:
+
+1. ncu-llm quick <program> [args]
+
+   Ultra-minimal profiling for quick checks
+
+   Collects: 8 essential metrics only
+   Output: ~5K tokens, <20 KB
+   Use for: CI/CD, quick bottleneck checks
+
+   Example:
+     ncu-llm quick ./myapp
+
+   Creates:
+     ./ncu-llm-output/quick-TIMESTAMP.txt
+     ./ncu-llm-output/quick-TIMESTAMP.csv
+
+───────────────────────────────────────────────────────────────────────────
+
+2. ncu-llm standard <program> [args]
+
+   Balanced profiling for standard workflow
+
+   Collects: Core metrics + insights
+   Output: ~30K tokens, ~100 KB
+   Use for: Standard optimization, LLM analysis
+
+   Example:
+     ncu-llm standard ./myapp 512
+
+   Creates:
+     ./ncu-llm-output/standard-TIMESTAMP.txt
+     ./ncu-llm-output/standard-TIMESTAMP.csv
+     ./ncu-llm-output/standard-TIMESTAMP-insights.txt
+
+───────────────────────────────────────────────────────────────────────────
+
+3. ncu-llm bottleneck <program> [args]
+
+   Quick answer: Memory-bound or compute-bound?
+
+   Collects: Just speed-of-light metrics
+   Output: ~2K tokens, single-page answer
+   Use for: Initial investigation
+
+   Example:
+     ncu-llm bottleneck ./myapp
+
+   Creates:
+     ./ncu-llm-output/bottleneck-TIMESTAMP.txt
+
+───────────────────────────────────────────────────────────────────────────
+
+4. ncu-llm memory <program> [args]
+
+   Deep dive into memory subsystem
+
+   Collects: Memory hierarchy, cache behavior, bandwidth
+   Output: ~40K tokens
+   Use for: Memory optimization focus
+
+   Example:
+     ncu-llm memory ./myapp
+
+   Creates:
+     ./ncu-llm-output/memory-TIMESTAMP.txt
+     ./ncu-llm-output/memory-TIMESTAMP.csv
+
+───────────────────────────────────────────────────────────────────────────
+
+5. ncu-llm compute <program> [args]
+
+   Deep dive into compute subsystem
+
+   Collects: IPC, pipeline utilization, instruction mix
+   Output: ~35K tokens
+   Use for: Compute optimization focus
+
+   Example:
+     ncu-llm compute ./myapp
+
+───────────────────────────────────────────────────────────────────────────
+
+6. ncu-llm compare <kernel1> <kernel2> [kernel3...] <program> [args]
+
+   Profile multiple kernels and compare side-by-side
+
+   Collects: One kernel at a time, essential metrics
+   Output: Comparison table + individual results
+   Use for: Comparing optimization attempts
+
+   Example:
+     ncu-llm compare naive tiled optimized ./matmul_cuda 512
+
+   Creates:
+     ./ncu-llm-output/compare-TIMESTAMP.txt
+     ./ncu-llm-output/compare-TIMESTAMP-naive.csv
+     ./ncu-llm-output/compare-TIMESTAMP-tiled.csv
+     ./ncu-llm-output/compare-TIMESTAMP-optimized.csv
+
+───────────────────────────────────────────────────────────────────────────
+
+7. ncu-llm insights <report.ncu-rep>
+
+   Extract only actionable insights from existing report
+
+   Input: .ncu-rep file
+   Output: ~10K tokens, recommendations only
+   Use for: Getting quick recommendations
+
+   Example:
+     ncu-llm insights my_profile.ncu-rep
+
+   Creates:
+     ./ncu-llm-output/insights-TIMESTAMP.txt
+
+───────────────────────────────────────────────────────────────────────────
+
+8. ncu-llm summary <report.ncu-rep>
+
+   One-page executive summary
+
+   Input: .ncu-rep file
+   Output: ~5K tokens, single page
+   Use for: Quick overview for reports/documentation
+
+   Example:
+     ncu-llm summary my_profile.ncu-rep
+
+   Creates:
+     ./ncu-llm-output/summary-TIMESTAMP.txt
+
+───────────────────────────────────────────────────────────────────────────
+
+9. ncu-llm export <report.ncu-rep> [--format FORMAT]
+
+   Export existing report to LLM-friendly formats
+
+   Formats: txt, csv, json, markdown
+   Output: Filtered, organized data
+
+   Example:
+     ncu-llm export my_profile.ncu-rep --format markdown
+
+───────────────────────────────────────────────────────────────────────────
+
+CONFIGURATION:
+
+Environment Variables:
+  NCU_LLM_OUTPUT_DIR    Output directory (default: ./ncu-llm-output)
+  NCU_LLM_TIMESTAMP     Include timestamps in filenames (default: yes)
+  NCU_LLM_VERBOSE       Verbose output (default: no)
+
+Examples:
+  NCU_LLM_OUTPUT_DIR=/tmp/results ncu-llm quick ./app
+  NCU_LLM_TIMESTAMP=no ncu-llm standard ./app
+
+───────────────────────────────────────────────────────────────────────────
+
+OUTPUT FILE ORGANIZATION:
+
+All outputs go to: $NCU_LLM_OUTPUT_DIR/
+
+File naming:
+  <command>-<timestamp>.txt           Main report (human-readable)
+  <command>-<timestamp>.csv           CSV data (grep-able)
+  <command>-<timestamp>-insights.txt  Actionable insights only
+  <command>-<timestamp>-raw.ncu-rep   Raw NCU report (for re-analysis)
+
+Example:
+  ./ncu-llm-output/
+  ├── standard-20250124-143022.txt
+  ├── standard-20250124-143022.csv
+  ├── standard-20250124-143022-insights.txt
+  ├── standard-20250124-143022-raw.ncu-rep
+  └── index.txt  (auto-generated index of all runs)
+
+───────────────────────────────────────────────────────────────────────────
+
+GREP-ABLE OUTPUT FORMAT:
+
+All text files use consistent formatting for easy searching:
+
+  # Section headers start with #
+  # Key-value pairs: "Key: Value"
+  # Tables: aligned columns with |
+  # Insights: Lines starting with ">>>"
+
+Examples:
+  grep "Memory Throughput:" standard-*.txt
+  grep ">>> OPT" standard-*-insights.txt
+  awk -F',' '{print $1,$5}' standard-*.csv
+
+───────────────────────────────────────────────────────────────────────────
+
+TOKEN BUDGET GUIDE:
+
+Command      Tokens    Use Case
+────────────────────────────────────────────
+quick        ~5K       CI/CD, quick checks
+bottleneck   ~2K       Initial investigation
+insights     ~10K      Get recommendations only
+summary      ~5K       Executive overview
+standard     ~30K      Standard workflow
+memory       ~40K      Memory deep-dive
+compute      ~35K      Compute deep-dive
+compare      ~20K      Side-by-side comparison
+
+Safe for LLMs: All commands stay under 50K tokens per file
+
+───────────────────────────────────────────────────────────────────────────
+
+EXAMPLES:
+
+# Quick CI/CD check
+ncu-llm quick ./myapp && grep "Bottleneck:" ncu-llm-output/quick-*.txt
+
+# Standard profiling workflow
+ncu-llm standard ./myapp
+cat ncu-llm-output/standard-*-insights.txt  # Read recommendations
+grep "Memory Throughput:" ncu-llm-output/standard-*.txt
+
+# Compare optimization attempts
+ncu-llm compare naive optimized ./myapp
+diff ncu-llm-output/compare-*-naive.csv ncu-llm-output/compare-*-optimized.csv
+
+# Get insights from existing profile
+ncu-llm insights old_profile.ncu-rep
+grep ">>> OPT" ncu-llm-output/insights-*.txt
+
+# Memory investigation
+ncu-llm memory ./myapp
+grep -E "L1|L2|DRAM" ncu-llm-output/memory-*.txt
+
+───────────────────────────────────────────────────────────────────────────
+
+For more information: https://github.com/your-repo/ncu-llm
+
+EOF
+}
+
+main "$@"

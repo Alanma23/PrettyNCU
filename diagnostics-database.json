@@ -1,0 +1,215 @@
+{
+  "diagnostics": [
+    {
+      "id": "memory_bottleneck",
+      "name": "Memory Bottleneck Diagnosis",
+      "description": "Comprehensive memory system analysis including cache hierarchy, DRAM throughput, and coalescing",
+      "priority": "high",
+      "overhead": "high",
+      "flags": {
+        "comprehensive": "--set full -o memory_report",
+        "focused": "--section MemoryWorkloadAnalysis --section SpeedOfLight -o report",
+        "cache_analysis": "--metrics lts__t_sectors_hit_rate.pct,lts__t_sectors_miss_rate.pct -o cache_report",
+        "roofline": "--section SpeedOfLight_RooflineChart --set detailed -o roofline"
+      },
+      "key_metrics": [
+        "lts__t_sector_hit_rate.pct - L2 Cache Hit Rate",
+        "lts__t_sectors_miss_rate.pct - L2 Cache Miss Rate",
+        "DRAM throughput",
+        "L1 cache throughput"
+      ],
+      "when_to_use": "When Memory Throughput < 60% in SpeedOfLight or suspecting uncoalesced accesses",
+      "llm_guidance": "Focus on memory access patterns, cache utilization, and coalescing. Recommend shared memory tiling or access pattern changes."
+    },
+    {
+      "id": "occupancy_roofline",
+      "name": "Occupancy & Roofline Analysis",
+      "description": "Analyzes kernel occupancy and performance against roofline model",
+      "priority": "high",
+      "overhead": "medium",
+      "flags": {
+        "full_roofline": "--set full --section Occupancy --section SpeedOfLight_RooflineChart -o roofline",
+        "detailed_roofline": "--set detailed -o roofline",
+        "occupancy_only": "--section Occupancy --metrics sm__maximum_warps_per_active_cycle_pct,sm__warps_active.avg.pct_of_peak_sustained_active -o occ"
+      },
+      "key_metrics": [
+        "sm__maximum_warps_per_active_cycle_pct - Theoretical occupancy",
+        "sm__warps_active.avg.pct_of_peak_sustained_active - Achieved occupancy"
+      ],
+      "when_to_use": "When both compute and memory throughput are low, or investigating register/shared memory pressure",
+      "llm_guidance": "Check for register pressure, shared memory usage, block size tuning. Use __launch_bounds__ if needed."
+    },
+    {
+      "id": "warp_stalls",
+      "name": "Warp Stall & Latency Analysis",
+      "description": "Deep dive into warp stall reasons and pipeline latency issues",
+      "priority": "high",
+      "overhead": "high",
+      "flags": {
+        "comprehensive": "--section WarpStateStats --section SourceCounters --section SchedulerStats -o stalls",
+        "with_source": "--section SourceCounters --lineinfo -o source_stalls",
+        "scheduler_only": "--section SchedulerStats -o scheduler"
+      },
+      "key_metrics": [
+        "Stall Long Scoreboard - memory latency issues",
+        "LG Throttle - local/global memory throttling",
+        "Branch/convergence issues in CBU"
+      ],
+      "when_to_use": "When throughput is low but occupancy is reasonable - indicates latency hiding problems",
+      "llm_guidance": "Analyze stall breakdown. Long Scoreboard → memory latency. Suggest prefetching, ILP improvements, or async operations."
+    },
+    {
+      "id": "compute_workload",
+      "name": "Compute Workload Analysis",
+      "description": "Pipeline utilization and instruction mix analysis",
+      "priority": "medium",
+      "overhead": "medium",
+      "flags": {
+        "pipeline": "--section ComputeWorkloadAnalysis -o compute",
+        "instructions": "--section InstructionStats -o instructions",
+        "combined": "--section ComputeWorkloadAnalysis --section InstructionStats --section SpeedOfLight -o compute_full"
+      },
+      "key_metrics": [
+        "FMA/FP64/FP16 pipeline utilization",
+        "Tensor Core operations",
+        "LSU (Load/Store Unit) utilization",
+        "CBU (Convergence/Barrier) utilization"
+      ],
+      "when_to_use": "When Compute Throughput < 60% in SpeedOfLight - check which execution units are bottlenecked",
+      "llm_guidance": "Identify underutilized pipelines. Suggest instruction mix improvements, FMA fusion, or using intrinsics."
+    },
+    {
+      "id": "tensor_core",
+      "name": "Tensor Core & GEMM Optimization",
+      "description": "Verify Tensor Core usage and optimize matrix operations",
+      "priority": "medium",
+      "overhead": "low",
+      "flags": {
+        "verify": "--metrics sm__inst_executed_pipe_tensor_op_hmma.sum,sm__inst_executed_pipe_tensor_op_dmma.sum -o tensor",
+        "detailed": "--metrics sm__inst_executed_pipe_tensor_op_hmma.sum,tensor_precision_fu_utilization -o tensor_detailed",
+        "gemm_full": "--set full -k gemm --launch-count 1 -o gemm_profile"
+      },
+      "key_metrics": [
+        "sm__inst_executed_pipe_tensor_op_hmma.sum - Tensor ops executed",
+        "tensor_precision_fu_utilization - Tensor Core utilization"
+      ],
+      "when_to_use": "For matrix multiplication kernels - verify Tensor Cores are being used effectively",
+      "llm_guidance": "Check if using wmma or mma APIs. Suggest proper tile sizes and data layouts for Tensor Cores."
+    },
+    {
+      "id": "cache_control",
+      "name": "Cache Control & Persistence",
+      "description": "Control cache behavior between kernel launches for data reuse analysis",
+      "priority": "low",
+      "overhead": "medium",
+      "flags": {
+        "no_flush": "--cache-control none --section MemoryWorkloadAnalysis -o cache_persist",
+        "mem_viz": "--section MemoryWorkloadAnalysis -o mem_viz"
+      },
+      "key_metrics": [
+        "Cache hit rates across kernel launches",
+        "Inter-kernel data reuse"
+      ],
+      "when_to_use": "When profiling multi-kernel applications with potential data reuse",
+      "llm_guidance": "Analyze inter-kernel cache reuse. Suggest kernel fusion or reordering if beneficial."
+    },
+    {
+      "id": "kernel_filtering",
+      "name": "Kernel Filtering & Overhead Reduction",
+      "description": "Target specific kernels and reduce profiling overhead",
+      "priority": "utility",
+      "overhead": "varies",
+      "flags": {
+        "by_name": "--kernel-name MyKernel --kernel-name-base demangled -o report",
+        "skip_and_count": "-s 10 -c 5 -o report",
+        "first_launch": "--kernel-id :::1 -o report",
+        "regex_filter": "-k \"gemm.*\" --launch-count 1 -o report"
+      },
+      "key_metrics": [],
+      "when_to_use": "Always use to reduce profiling time - profile only kernels of interest",
+      "llm_guidance": "Smart kernel selection based on code analysis. Profile only the kernel being optimized."
+    },
+    {
+      "id": "quick_diagnostic",
+      "name": "Quick Diagnostic (SpeedOfLight)",
+      "description": "Fast high-level overview - determine if memory or compute bound",
+      "priority": "critical",
+      "overhead": "low",
+      "flags": {
+        "quick": "--section SpeedOfLight -o quick_check"
+      },
+      "key_metrics": [
+        "Memory Throughput %",
+        "Compute Throughput %"
+      ],
+      "when_to_use": "ALWAYS START HERE - determines which detailed analysis to run next",
+      "llm_guidance": "Use as initial triage. If Memory > Compute → investigate memory. If Compute > Memory → investigate compute pipeline."
+    },
+    {
+      "id": "export_csv",
+      "name": "Export to CSV for Post-Processing",
+      "description": "Export raw metrics in CSV format for programmatic analysis",
+      "priority": "utility",
+      "overhead": "none",
+      "flags": {
+        "raw_csv": "--page raw --csv -o report",
+        "multi_page": "--page details --page raw --page source -o comprehensive",
+        "with_units": "--csv --print-units base -o data"
+      },
+      "key_metrics": [],
+      "when_to_use": "When building automated analysis pipelines or custom visualizations",
+      "llm_guidance": "Parse CSV outputs programmatically. Look for metric thresholds and correlations."
+    }
+  ],
+  "workflows": [
+    {
+      "name": "Initial Profiling",
+      "description": "Start here for any new kernel",
+      "steps": [
+        {"diagnostic": "quick_diagnostic", "variant": "quick"},
+        {"decision": "If Memory Throughput < Compute Throughput", "next": "memory_bottleneck"},
+        {"decision": "If Compute Throughput < Memory Throughput", "next": "compute_workload"},
+        {"decision": "If both < 60%", "next": "occupancy_roofline"}
+      ]
+    },
+    {
+      "name": "Memory Bottleneck Investigation",
+      "description": "Deep dive when memory-bound",
+      "steps": [
+        {"diagnostic": "memory_bottleneck", "variant": "focused"},
+        {"diagnostic": "memory_bottleneck", "variant": "cache_analysis"},
+        {"diagnostic": "memory_bottleneck", "variant": "roofline"}
+      ]
+    },
+    {
+      "name": "Low Occupancy Investigation",
+      "description": "When occupancy is limiting performance",
+      "steps": [
+        {"diagnostic": "occupancy_roofline", "variant": "occupancy_only"},
+        {"diagnostic": "warp_stalls", "variant": "comprehensive"},
+        {"diagnostic": "warp_stalls", "variant": "scheduler_only"}
+      ]
+    },
+    {
+      "name": "Iterative Solver Profiling",
+      "description": "For kernels called many times",
+      "steps": [
+        {"diagnostic": "kernel_filtering", "variant": "skip_and_count", "note": "Skip warmup, profile one iteration"},
+        {"diagnostic": "quick_diagnostic", "variant": "quick"}
+      ]
+    }
+  ],
+  "thresholds": {
+    "memory_throughput_low": {"value": 60, "unit": "percent", "action": "investigate_latency"},
+    "compute_throughput_low": {"value": 60, "unit": "percent", "action": "investigate_latency"},
+    "occupancy_low": {"value": 50, "unit": "percent", "action": "interferes_with_latency_hiding"},
+    "l2_miss_rate_high": {"value": 30, "unit": "percent", "action": "check_coalescing_or_working_set"}
+  },
+  "compilation_requirements": {
+    "source_correlation": {
+      "flag": "-lineinfo",
+      "description": "Required for source-level NCU analysis",
+      "when": "Using --section SourceCounters"
+    }
+  }
+}

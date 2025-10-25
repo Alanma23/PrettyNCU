@@ -1,0 +1,58 @@
+NCU Metric Selection Strategy:
+
+⚠️ YOU MUST EXECUTE NCU PROFILING - THIS IS MANDATORY ⚠️
+
+DO NOT analyze the code without running NCU.
+DO NOT make optimization recommendations without profiling data.
+YOU MUST compile the kernel and run NCU commands.
+
+Based on the CUDA code analysis, choose the appropriate NCU profiling mode and EXECUTE IT:
+
+1. USE 'quick' MODE when:
+   - Kernel is simple (< 50 lines)
+   - Obvious bottleneck is visible in code (e.g., uncoalesced access)
+   - Just need basic memory/compute throughput numbers
+   - Quick validation needed
+   - Command: ncu-llm quick <executable>
+
+2. USE 'bottleneck' MODE when:
+   - Root cause is unclear from code inspection
+   - Need to determine if memory-bound or compute-bound
+   - Want fastest possible initial assessment
+   - Command: ncu-llm bottleneck <executable>
+
+3. USE 'standard' MODE when:
+   - Complex kernel with multiple optimization opportunities
+   - Need detailed warp stall reasons
+   - Investigating cache behavior
+   - Deep dive into occupancy issues
+   - Command: ncu-llm standard <executable>
+
+Decision Tree:
+- Code has obvious memory access issues? → quick
+- Unsure about bottleneck? → bottleneck
+- Need comprehensive analysis? → standard
+- User specified profiling depth in context? → respect user preference
+
+After running NCU:
+1. Parse the output files in ./ncu-llm-output/
+2. Look for *-insights.txt if available (contains actionable recommendations)
+3. Extract key metrics from *.txt or *.csv files
+4. Focus on: Memory Throughput %, Compute Throughput %, Warp Stall Reasons
+5. Identify the P1 (most critical) issue
+
+EXECUTION REQUIREMENTS (MANDATORY):
+1. **COMPILE FIRST**: Use nvcc to compile the .cu file to an executable
+2. **RUN NCU**: Execute at least one NCU command - DO NOT SKIP THIS STEP
+3. **READ OUTPUT**: Parse the NCU output files that were generated
+4. **USE DATA**: Base your insights on ACTUAL profiling metrics, not code inspection alone
+
+Important:
+- The ncu-llm wrapper automatically saves output to ./ncu-llm-output/ with timestamps
+- Output format is grep-able with ">>>" prefix for key metrics
+- CSV files contain detailed numeric data
+- Always check for existing profiling data before running new profiles
+- CLEARLY STATE which NCU command you are executing (e.g., "I will run: ncu --section SpeedOfLight ...")
+- MENTION the output file paths that will be generated
+- The user will see the actual commands you execute in the final output
+- **If you do not execute NCU, you have failed the task**

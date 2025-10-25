@@ -1,75 +1,36 @@
-# Virtual environments
-venv/
-test_venv/
-.orchestra/
-__pycache__/
-*.pyc
-*.pyo
+# Dependencies
+node_modules/
+package-lock.json
 
-# Claude Code personal files
-.claude/
-.claude.json
-.claude.json.backup
+# Build outputs
+dist/
 
-# Editor files
-*.swp
-*.swo
-*~
-.vscode-server/
-.cursor-server/
+# NCU profiling outputs
+ncu-llm-output/
+*.ncu-rep
 
-# User-specific files
-.bash_history
-.lesshst
-.viminfo
-.wget-hsts
-.ssh/
+# Compiled executables
+*.out
+a.out
+test-kernel
+matmul*
+kernel
+kernel_*
 
-# Cache and local files
-.cache/
-.local/
-.npm/
-.nv/
+# Temporary files
+*.tmp
+*.log
 
-# System files
+# OS files
 .DS_Store
 Thumbs.db
 
-# Snap directory
-snap/
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# Compiled binaries and executables
-matmul
-matmul_analysis
-matmul_blocked
-matmul_cuda
-matmul_naive
-matmul_omp
-matmul_opt
-matmul_reordered
-
-# Profile data files
-*.nsys-rep
-*.sqlite
-*.ncu-rep
-*.csv
-
-# Python wheels and packages
-*.whl
-orchestra_extracted/
-
-# Shell configuration files (user-specific)
-.bash_logout
-.bashrc
-.profile
-.tmux.conf
-.nvm/
-
-# Temporary and generated files
-=0.1.0
-=0.117.1
-=0.24.0
-=0.37.0
-=1.0.0
-file_list.txt
-sass_sample.txt
+# Test files (keep test-kernel.cu)
+# Add specific test files here if needed
