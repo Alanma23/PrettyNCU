@@ -1,11 +1,11 @@
-# NCU-Claude: Intelligent CUDA Profiling with AI
+# PrettyNCU: Intelligent CUDA Profiling with AI
 
-An interactive CLI/TUI tool that uses Claude AI to intelligently profile CUDA kernels with NVIDIA Nsight Compute (NCU), automatically selecting minimal metrics and generating actionable optimization insights.
+An interactive CLI/TUI tool that uses PrettyNCU to intelligently profile CUDA kernels with NVIDIA Nsight Compute (NCU), automatically selecting minimal metrics and generating actionable optimization insights all in terminal.
 
 ## Features
 
 ### Core Capabilities
-- 🤖 **AI-Powered Analysis**: Claude intelligently chooses the right NCU profiling mode
+- 🤖 **AI-Powered Analysis**: Sonnet 4.5 chooses the right NCU profiling mode
 - 🔬 **Diagnostic Presets**: 9 built-in presets for common profiling scenarios (memory, compute, occupancy, tensor, etc.)
 - 📊 **Minimal Profiling Overhead**: Collects only the metrics needed to identify bottlenecks
 - 🎯 **Actionable Insights**: Prioritized optimization recommendations (P1-P4)
@@ -39,7 +39,7 @@ chmod +x ./scripts/ncu-llm ./scripts/ncu-llm-lib.sh
 npm run dev -- analyze test-kernel.cu
 ```
 
-That's it! Claude will compile your kernel, run NCU profiling, and provide optimization insights.
+That's it! PrettyNCU will compile your kernel, run NCU profiling, and provide optimization insights.
 
 ## Prerequisites
 
@@ -47,7 +47,7 @@ That's it! Claude will compile your kernel, run NCU profiling, and provide optim
 - NVIDIA GPU with CUDA toolkit installed
 - NCU (NVIDIA Nsight Compute) installed
 - `ncu-llm` wrapper script (included in `scripts/` directory)
-- Claude API access (via Claude Agent SDK)
+- MCP API access (via PrettyNCU Agent SDK)
 
 ## Installation
 
@@ -79,7 +79,7 @@ ncu-claude analyze test-kernel.cu
 
 ### With Diagnostic Presets
 
-Guide Claude's NCU profiling strategy with intelligent presets:
+Guide PrettyNCU profiling strategy with intelligent presets:
 
 ```bash
 # List all available diagnostic presets
@@ -181,7 +181,7 @@ ncu-claude analyze kernel.cu --interactive
 
 1. **Upload**: Provide a `.cu` CUDA kernel file
 2. **Context**: Add custom optimization preferences (or use sensible defaults)
-3. **AI Analysis**: Claude analyzes your code and intelligently selects NCU profiling mode
+3. **AI Analysis**: PrettyNCU analyzes your code and intelligently selects NCU profiling mode
 4. **Profiling**: Executes NCU commands automatically via the Agent SDK
 5. **Insights**: Parses NCU output and identifies the highest-priority bottleneck
 6. **Hot Fix**: Generates concrete code changes with explanations
@@ -191,7 +191,7 @@ ncu-claude analyze kernel.cu --interactive
 
 The TUI provides detailed visibility into the profiling process:
 
-**Tool Execution Details**: See exactly what Claude is running:
+**Tool Execution Details**: See exactly what PrettyNCU is running:
 ```
 🔧 Bash
    └─ nvcc test-kernel.cu -o kernel_executable
@@ -331,13 +331,13 @@ The tool returns a JSON object with these fields:
 ```
 
 **New**: The `ncu_metadata` field provides transparency into the profiling process:
-- **commands_executed**: Exact NCU commands Claude chose to run
+- **commands_executed**: Exact NCU commands PrettyNCU chose to run
 - **output_files**: Paths to all NCU output files for manual inspection
 - **raw_data_snippet**: Preview of raw NCU data (first 500 chars)
 
 ## NCU Profiling Modes
 
-Claude intelligently chooses between:
+PrettyNCU intelligently chooses between:
 
 - **quick**: 8 essential metrics (~5K tokens) - for simple kernels
 - **bottleneck**: Memory vs compute check (~2K tokens) - when root cause unclear
@@ -426,7 +426,7 @@ $ npm run dev -- analyze test-kernel.cu --diagnostics memory
 
 **What just happened:**
 
-1. ✅ Claude compiled your kernel with nvcc
+1. ✅ PrettyNCU compiled your kernel with nvcc
 2. ✅ Executed NCU profiling using the memory diagnostic preset
 3. ✅ Parsed the profiling data and identified the bottleneck
 4. ✅ Generated a concrete code fix with explanation
@@ -484,7 +484,7 @@ Each document provides detailed examples and usage patterns for its respective f
 - Check that your `.cu` file has valid CUDA syntax
 - Ensure NVIDIA GPU drivers are properly installed
 
-**Error: Claude API timeout**
+**Error: PrettyNCU API timeout**
 - Large kernels may take time to analyze
 - Try using `--context-inline "Use quick profiling"` to force quick mode
 - Use `--diagnostics quick` for faster profiling
@@ -495,7 +495,7 @@ Each document provides detailed examples and usage patterns for its respective f
 
 **NCU profiling not executing**
 - The tool enforces mandatory NCU execution
-- If Claude tries to analyze without profiling, this is a bug - please report it
+- If PrettyNCU tries to analyze without profiling, this is a bug - please report it
 - Check that the Bash tool has proper permissions in your environment
 
 ## License
